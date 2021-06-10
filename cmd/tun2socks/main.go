@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/eycorsican/go-tun2socks/proxy/local"
 	"github.com/eycorsican/go-tun2socks/proxy/socks"
 	"io"
 	"os"
@@ -166,8 +167,8 @@ func main() {
 		// Verify proxy server address.
 		proxyHost := "127.0.0.1"
 		proxyPort := uint16(1080)
-		core.RegisterTCPConnHandler(socks.NewTCPHandler(proxyHost, proxyPort))
-		core.RegisterUDPConnHandler(socks.NewUDPHandler(proxyHost, proxyPort, 5*time.Minute))
+		core.RegisterTCPConnHandler(socks.NewTCPHandler(proxyHost, proxyPort, "", ""))
+		core.RegisterUDPConnHandler(local.NewUDPHandler(10 * time.Second))
 	})
 
 	// Register TCP and UDP handlers to handle accepted connections.

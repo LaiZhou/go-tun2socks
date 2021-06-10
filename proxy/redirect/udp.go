@@ -41,7 +41,7 @@ func (h *udpHandler) fetchUDPInput(conn core.UDPConn, pc *net.UDPConn) {
 		pc.SetDeadline(time.Now().Add(h.timeout))
 		n, addr, err := pc.ReadFromUDP(buf)
 		if err != nil {
-			// log.Printf("failed to read UDP data from remote: %v", err)
+			log.Errorf("failed to read UDP data from remote: %v", err)
 			return
 		}
 
