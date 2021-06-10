@@ -16,12 +16,16 @@ type tcpHandler struct {
 
 	proxyHost string
 	proxyPort uint16
+	username  string
+	password  string
 }
 
-func NewTCPHandler(proxyHost string, proxyPort uint16) core.TCPConnHandler {
+func NewTCPHandler(proxyHost string, proxyPort uint16, username string, password string) core.TCPConnHandler {
 	return &tcpHandler{
 		proxyHost: proxyHost,
 		proxyPort: proxyPort,
+		username:  username,
+		password:  password,
 	}
 }
 
@@ -86,7 +90,11 @@ func (h *tcpHandler) relay(lhs, rhs net.Conn) {
 }
 
 func (h *tcpHandler) Handle(conn net.Conn, target *net.TCPAddr) error {
-	dialer, err := proxy.SOCKS5("tcp", core.ParseTCPAddr(h.proxyHost, h.proxyPort).String(), nil, nil)
+	var auth *proxy.Auth
+	if h.username != "" && h.password != "" {
+		auth = &proxy.Auth{User: h.username, Password: h.password}
+	}
+	dialer, err := proxy.SOCKS5("tcp", core.ParseTCPAddr(h.proxyHost, h.proxyPort).String(), auth, nil)
 	if err != nil {
 		return err
 	}

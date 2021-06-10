@@ -3,8 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/eycorsican/go-tun2socks/proxy/local"
+	"github.com/eycorsican/go-tun2socks/proxy/socks"
 	"io"
 	"os"
+	"os/exec"
 	"os/signal"
 	"runtime"
 	"strings"
@@ -96,7 +99,7 @@ func main() {
 	args.TunPersist = flag.Bool("tunPersist", false, "Persist TUN interface after the program exits or the last open file descriptor is closed (Linux only)")
 	args.BlockOutsideDns = flag.Bool("blockOutsideDns", false, "Prevent DNS leaks by blocking plaintext DNS queries going out through non-TUN interface (may require admin privileges) (Windows only) ")
 	args.ProxyType = flag.String("proxyType", "socks", "Proxy handler type")
-	args.LogLevel = flag.String("loglevel", "info", "Logging level. (debug, info, warn, error, none)")
+	args.LogLevel = flag.String("loglevel", "debug", "Logging level. (debug, info, warn, error, none)")
 
 	flag.Parse()
 
@@ -134,6 +137,22 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to open tun device: %v", err)
 	}
+	cmd := exec.Command("sh", "-c", "ip addr add 10.0.0.1/24 dev tun1")
+	_, err = cmd.CombinedOutput()
+	if err != nil {
+		log.Fatalf("", err)
+	}
+	cmd = exec.Command("sh", "-c", "ip link set dev tun1 up")
+	_, err = cmd.CombinedOutput()
+	if err != nil {
+		log.Fatalf("", err)
+	}
+	//disable rp_filter for receive  tcp sync-ack https://github.com/ambrop72/badvpn/issues/64
+	cmd = exec.Command("sh", "-c", "echo 0 > /proc/sys/net/ipv4/conf/tun1/rp_filter")
+	_, err = cmd.CombinedOutput()
+	if err != nil {
+		log.Fatalf("", err)
+	}
 
 	if runtime.GOOS == "windows" && *args.BlockOutsideDns {
 		if err := blocker.BlockOutsideDns(*args.TunName); err != nil {
@@ -143,6 +162,14 @@ func main() {
 
 	// Setup TCP/IP stack.
 	lwipWriter := core.NewLWIPStack().(io.Writer)
+
+	registerHandlerCreater("socks", func() {
+		// Verify proxy server address.
+		proxyHost := "127.0.0.1"
+		proxyPort := uint16(1080)
+		core.RegisterTCPConnHandler(socks.NewTCPHandler(proxyHost, proxyPort, "", ""))
+		core.RegisterUDPConnHandler(local.NewUDPHandler(10 * time.Second))
+	})
 
 	// Register TCP and UDP handlers to handle accepted connections.
 	if creater, found := handlerCreater[*args.ProxyType]; found {

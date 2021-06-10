@@ -1,5 +1,19 @@
 # go-tun2socks
 
+### The purpose of this fork（https://github.com/LaiZhou/go-tun2socks）:
+- add tun device example in cmd/tun2socks/main.go, you can test it by:
+```bigquery
+curl --interface tun1 -v https://www.google.com
+```
+remind to replace the socks5 server host and port, default 127.0.0.1:1080 with no auth.
+
+- add socks5 client auth support.
+
+- add local udp support, routing the traffic to local ethernet.
+
+
+
+
 [![Build Status](https://travis-ci.com/eycorsican/go-tun2socks.svg?branch=master)](https://travis-ci.com/eycorsican/go-tun2socks)
 
 A tun2socks implementation written in Go.
@@ -23,3 +37,4 @@ The following projects are using go-tun2socks:
 
 - https://github.com/mellow-io/mellow
 - https://github.com/eycorsican/kitsunebi-android
+

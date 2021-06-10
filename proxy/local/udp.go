@@ -1,4 +1,4 @@
-package redirect
+package local
 
 import (
 	"errors"
@@ -17,15 +17,13 @@ type udpHandler struct {
 	timeout        time.Duration
 	udpConns       map[core.UDPConn]*net.UDPConn
 	udpTargetAddrs map[core.UDPConn]*net.UDPAddr
-	target         string
 }
 
-func NewUDPHandler(target string, timeout time.Duration) core.UDPConnHandler {
+func NewUDPHandler(timeout time.Duration) core.UDPConnHandler {
 	return &udpHandler{
 		timeout:        timeout,
 		udpConns:       make(map[core.UDPConn]*net.UDPConn, 8),
 		udpTargetAddrs: make(map[core.UDPConn]*net.UDPAddr, 8),
-		target:         target,
 	}
 }
 
@@ -41,13 +39,13 @@ func (h *udpHandler) fetchUDPInput(conn core.UDPConn, pc *net.UDPConn) {
 		pc.SetDeadline(time.Now().Add(h.timeout))
 		n, addr, err := pc.ReadFromUDP(buf)
 		if err != nil {
-			log.Errorf("failed to read UDP data from remote: %v", err)
+			log.Warnf("failed to read UDP data from remote: %v", err)
 			return
 		}
 
 		_, err = conn.WriteFrom(buf[:n], addr)
 		if err != nil {
-			log.Warnf("failed to write UDP data to TUN")
+			log.Errorf("failed to write UDP data to TUN")
 			return
 		}
 	}
@@ -60,9 +58,8 @@ func (h *udpHandler) Connect(conn core.UDPConn, target *net.UDPAddr) error {
 		log.Errorf("failed to bind udp address")
 		return err
 	}
-	tgtAddr, _ := net.ResolveUDPAddr("udp", h.target)
 	h.Lock()
-	h.udpTargetAddrs[conn] = tgtAddr
+	h.udpTargetAddrs[conn] = target
 	h.udpConns[conn] = pc
 	h.Unlock()
 	go h.fetchUDPInput(conn, pc)
@@ -79,7 +76,6 @@ func (h *udpHandler) ReceiveTo(conn core.UDPConn, data []byte, addr *net.UDPAddr
 	if ok1 && ok2 {
 		_, err := pc.WriteToUDP(data, tgtAddr)
 		if err != nil {
-			log.Warnf("failed to write UDP payload to SOCKS5 server: %v", err)
 			return errors.New("failed to write UDP data")
 		}
 		return nil
