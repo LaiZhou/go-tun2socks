@@ -147,7 +147,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("", err)
 	}
-	//disable rp_filter for receive sync-ack https://www.cnblogs.com/lipengxiang2009/p/7446388.html
+	//disable rp_filter for receive  tcp sync-ack https://github.com/ambrop72/badvpn/issues/64
 	cmd = exec.Command("sh", "-c", "echo 0 > /proc/sys/net/ipv4/conf/tun1/rp_filter")
 	_, err = cmd.CombinedOutput()
 	if err != nil {
